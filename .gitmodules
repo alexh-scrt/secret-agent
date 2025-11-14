@@ -1,0 +1,3 @@
+[submodule "mcp-scrt"]
+	path = mcp-scrt
+	url = https://github.com/alexh-scrt/mcp-scrt.git

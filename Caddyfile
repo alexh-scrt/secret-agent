@@ -1,0 +1,113 @@
+# Caddyfile - Reverse proxy configuration with API key authentication
+#
+# All services accessible through localhost:8080 with different paths:
+# - http://localhost:8080/ollama/*    -> Ollama
+# - http://localhost:8080/chroma/*    -> ChromaDB
+# - http://localhost:8080/neo4j/*     -> Neo4j HTTP
+# - http://localhost:8080/redis/*     -> Redis (via HTTP proxy)
+#
+# Authentication: Include header "X-API-Key: your-api-key" in all requests
+
+{
+    # Global options
+    admin off  # Disable admin API for security
+    auto_https off  # Disable HTTPS (using HTTP for local development)
+    log {
+        format json
+	    level DEBUG
+    }
+}
+
+:18343 {
+    # TLS configuration using custom certificates
+    tls /app/cert/fullchain.pem /app/cert/privkey.pem
+
+    # =============================================================================
+    # OLLAMA - LLM Service
+    # =============================================================================
+
+    handle_path /ollama/* {
+        # Require API key authentication
+        @authenticated {
+            header X-API-Key {$API_KEY}
+        }
+
+        handle @authenticated {
+            reverse_proxy ollama:11434
+        }
+
+        handle {
+            respond "Unauthorized: Invalid or missing X-API-Key header" 401
+        }
+    }
+
+    # =============================================================================
+    # CHROMADB - Vector Database
+    # =============================================================================
+
+    handle_path /chroma/* {
+        # ChromaDB has its own token auth, but we add Caddy layer too
+        @authenticated {
+            header X-API-Key {$API_KEY}
+        }
+
+        handle @authenticated {
+            reverse_proxy chromadb:8000
+        }
+
+        handle {
+            respond "Unauthorized: Invalid or missing X-API-Key header" 401
+        }
+    }
+
+    # =============================================================================
+    # NEO4J - Graph Database (HTTP API)
+    # =============================================================================
+
+    handle_path /neo4j/* {
+        # Neo4j uses Basic Auth natively, Caddy adds additional layer
+        @authenticated {
+            header X-API-Key {$API_KEY}
+        }
+
+        handle @authenticated {
+            reverse_proxy neo4j:7474
+        }
+
+        handle {
+            respond "Unauthorized: Invalid or missing X-API-Key header" 401
+        }
+    }
+
+    # =============================================================================
+    # REDIS - Through HTTP Proxy (webdis)
+    # Note: For direct Redis access, use localhost:6379 with password
+    # =============================================================================
+
+    # Redis doesn't have HTTP API natively, clients connect directly with password
+    # If you need HTTP access to Redis, add webdis service to docker-compose
+
+    # =============================================================================
+    # DEFAULT - Show available endpoints
+    # =============================================================================
+
+    handle / {
+        respond `
+        Secret Agent Service Gateway
+
+        Available endpoints (require X-API-Key header):
+        - /ollama/*  - Ollama LLM API
+        - /chroma/*  - ChromaDB Vector Database
+        - /neo4j/*   - Neo4j Graph Database (HTTP)
+
+        Redis: Use direct connection to localhost:6379 with password
+
+        Authentication: Include header "X-API-Key: your-api-key"
+        ` 200
+    }
+
+    # Health check endpoint (no auth required)
+    handle /health {
+        respond "OK" 200
+    }
+}
