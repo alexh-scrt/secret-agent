@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "MCP SCRT": {
+      "command": "/Users/ki11erc0der/miniconda/envs/mcp-scrt/bin/python3",
+      "args": ["-m", "mcp_scrt"],
+      "env": {
+        "SECRET_NETWORK": "testnet",
+        "MAX_CONNECTIONS": "10",
+        "CACHE_TTL_VALIDATORS": "300",
+        "CACHE_TTL_BALANCES": "30",
+        "LOG_LEVEL": "DEBUG",
+        "LOG_FORMAT": "console"
+      }
+    }
+  }
+}
