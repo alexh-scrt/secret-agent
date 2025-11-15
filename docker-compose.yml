@@ -1,5 +1,3 @@
-version: '3.8'
-
 # SECURE CONFIGURATION with Caddy Reverse Proxy
 #
 # Security Features:
@@ -23,7 +21,7 @@ services:
     image: caddy:latest
     container_name: sa-caddy-proxy
     ports:
-      - "${REMOTE_PORT}:${REMOTE_PORT}"  # Single entry point for all services
+      - "18343:18343"  # Single entry point for all services
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - /mnt/secure/cert/secretai-yyzz:/app/cert:ro
@@ -134,12 +132,26 @@ services:
   redis:
     image: redis:latest
     container_name: sa-redis
-    # NO PORTS - only accessible through Caddy
+    ports:
+      - "16343:16343"
     volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes --maxmemory ${REDIS_MAX_MEMORY:-512mb} --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
+        - redis-data:/data
+        - /mnt/secure/cert/secretai-yyzz:/certs:ro
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory ${REDIS_MAX_MEMORY:-512mb}
+      --maxmemory-policy allkeys-lru
+      --port 0
+      --tls-port 16343
+      --tls-cert-file /certs/fullchain.pem
+      --tls-key-file  /certs/privkey.pem
+      --tls-ca-cert-dir /certs
+      --tls-auth-clients no
+      --requirepass ${REDIS_PASSWORD}
+
     networks:
-      - agent-network
+        - agent-network
     restart: unless-stopped
 
 # =============================================================================

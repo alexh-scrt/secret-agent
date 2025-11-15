@@ -188,6 +188,7 @@ Given the POC is production-ready, we can accelerate significantly.
 git init secret-agent
 cd secret-agent
 git submodule add https://github.com/alexh-scrt/mcp-scrt.git
+git submodule update --init 
 
 # Option 2: Copy
 git clone https://github.com/alexh-scrt/mcp-scrt.git
